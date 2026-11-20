@@ -66,8 +66,37 @@ npm run dev
 | 语义结果 | `nlu_result` | 语义记录 | 记录ID、输入文本、意图标签 |
 | 知识链接 | `knowledge_link` | 链接记录 | 链接ID、源实体、外部URI |
 | 输出目标 | `output_target` | 输出配置 | 配置名称、输出类型、目标地址 |
-| 抽取工坊 | `extract_studio` | 交互任务 | 任务名称、示例页面、标注区域 |
+| 抽取工坊 | `extract_studio` | 交互任务 | 任务名称、站点、页面布局、字段配对 |
 | 聚合视图 | `aggregate_view` | 视图配置 | 视图名称、统计维度、聚合字段 |
+
+## 发布交接
+
+抽取工坊的已审核任务可以发布为站点采集规则数据集，再交接给采集端：
+
+1. `POST /api/extract_studio/{id}/review-submit` 生成审核回执（审核版本）。
+   同一份审核定义再次提交不会产生新版本。
+2. `POST /api/extract_studio/{id}/publish` 把回执转成可执行的站点采集规则数据集，
+   并生成同审核版本的模板规则；发布结果回写工坊清单。
+3. `GET /api/extract_studio/{id}/collection-version` 供审核模块同步采集版本；
+   `GET /api/extract_studio/{id}/publish-trace` 追溯回执 → 候选 → 数据集 → 采集批次。
+4. `GET /api/template_rule/{id}/collection-input` 由模板生成采集输入，
+   `POST /api/template_rule/{id}/collection-batches` 确认完整字段配对并创建批次，
+   `POST /api/collection_batches/{id}/run` 按批次创建时的选择器快照运行。
+
+同一站点两份已审核任务给同一字段不同选择器时：
+
+- 页面布局不同（如商品详情 / 商品列表）：按页面范围分别生效，冲突报告为「提示」；
+- 页面布局相同但选择器互斥：无法判断页面归属，发布「暂挂」，冲突报告为「阻断」，
+  并列出涉及的字段和页面。暂挂不生成模板，也不允许生成采集输入。
+
+采集批次只接受完整字段配对，且固定创建时的选择器快照；候选状态后续变化不影响
+已经开始的批次追溯。
+
+回归测试：
+
+```bash
+cd backend && .venv/bin/python -m unittest discover -s tests -v
+```
 
 ## 约定
 

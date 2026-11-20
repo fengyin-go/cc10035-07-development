@@ -18,6 +18,7 @@ export type ModuleMeta = {
   actions: string[]
   actionTargets: Record<string, string>
   metrics: string[]
+  handoff?: 'studio' | 'template'
 }
 
 export type PageResult = {
